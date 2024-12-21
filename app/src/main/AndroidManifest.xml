@@ -13,10 +13,10 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">
         <activity
-            android:name=".presentation.NewContactActivity"
+            android:name=".presentation.ui.NewContactActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.MainActivity"
+            android:name=".presentation.ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
