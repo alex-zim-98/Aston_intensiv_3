@@ -10,6 +10,7 @@ import com.aston.myapplication.databinding.ActivityMainBinding
 import com.aston.myapplication.domain.entity.Contact
 import com.aston.myapplication.presentation.ui.adapters.CompositeDelegateAdapter
 import com.aston.myapplication.presentation.ui.adapters.ContactDelegateAdapter
+import com.aston.myapplication.presentation.utils.ContactListItemCallbackDiffUtil
 import com.aston.myapplication.presentation.viewmodel.MainViewModel
 
 class MainActivity : AppCompatActivity() {
@@ -24,25 +25,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val selectedMap = mutableMapOf<Int, Contact>()
-    private var modeDelete = false
+
+    private val contactDelegateAdapter by lazy {
+        ContactDelegateAdapter(
+            clickOnItemListener = { contact ->
+                startActivity(NewContactActivity.newIntentEdit(this, contact))
+            },
+            selectedMap = selectedMap,
+            modeDelete = isClick
+        )
+    }
 
     private val contactAdapter by lazy {
         CompositeDelegateAdapter(
-            listOf(
-                ContactDelegateAdapter(
-                    clickOnItemListener = { contact ->
-                        startActivity(NewContactActivity.newIntentEdit(this, contact))
-                    },
-                    selectedMap = selectedMap,
-                    modeDelete = modeDelete
-                )
-            )
+            delegates = listOf(
+                contactDelegateAdapter
+            ),
+            diffCallback = ContactListItemCallbackDiffUtil()
         )
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
+
+        contactDelegateAdapter.setCompositeAdapter(contactAdapter as CompositeDelegateAdapter<Contact, RecyclerView.ViewHolder>)
 
         viewBinding.rvContacts.adapter = contactAdapter
 
@@ -77,9 +85,8 @@ class MainActivity : AppCompatActivity() {
         isClick = !isClick
         animationVisibility(viewBinding.clDeleteMode, getVisibilityStatus(isClick))
         animationVisibility(viewBinding.fabAdd, getVisibilityStatus(!isClick))
-        modeDelete = isClick
         selectedMap.clear()
-        contactAdapter.notifyDataSetChanged()
+        contactDelegateAdapter.modeDelete = isClick
     }
 
     private fun animationVisibility(view: View, statusVisibility: Int) {
@@ -113,7 +120,7 @@ class MainActivity : AppCompatActivity() {
                     return false
                 }
 
-                val updatedList = contactAdapter.items.toMutableList()
+                val updatedList = contactAdapter.currentList.toMutableList()
                 val movedItem = updatedList.removeAt(fromPosition)
                 updatedList.add(toPosition, movedItem)
 
