@@ -1,36 +1,41 @@
 package com.aston.myapplication.presentation.ui.adapters
 
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.aston.myapplication.presentation.ui.ContactListViewHolder
 
-class CompositeDelegateAdapter<T>(
-    private val delegates: List<DelegateAdapter<T, ContactListViewHolder>>
-) : RecyclerView.Adapter<ContactListViewHolder>() {
+class CompositeDelegateAdapter<T, VH : RecyclerView.ViewHolder>(
+    private val delegates: List<DelegateAdapter<T, VH>>,
+    diffCallback: DiffUtil.ItemCallback<T>
+) : ListAdapter<T, VH>(diffCallback) {
+    private var recyclerView: RecyclerView? = null
 
-    val items = mutableListOf<T>()
-
-    fun submitList(newItems: List<T>) {
-        items.clear()
-        items.addAll(newItems)
-        notifyDataSetChanged()
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        this.recyclerView = recyclerView
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return delegates.indexOfFirst { it.isForViewType(items[position], position) }
-            .takeIf { it != -1 }
-            ?: throw IllegalArgumentException("No delegate found for position $position")
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        this.recyclerView = null
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactListViewHolder {
+    fun notifyItemChangedSafe(position: Int) {
+        recyclerView?.adapter?.notifyItemChanged(position)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         return delegates[viewType].onCreateViewHolder(parent)
     }
 
-    override fun onBindViewHolder(holder: ContactListViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: VH, position: Int) {
         val delegate = delegates[getItemViewType(position)]
-        delegate.onBindViewHolder(holder, items[position], position)
+        delegate.onBindViewHolder(holder, getItem(position), position)
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemViewType(position: Int): Int {
+        return delegates.indexOfFirst { it.isForViewType(getItem(position), position) }
+    }
 }
 
